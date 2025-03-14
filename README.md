@@ -1,4 +1,4 @@
-<img src="https://github.com/atg205/DWaveDynamics/main/logo-1.png?raw=true" width="300"/>
+<img src="https://github.com/atg205/DWaveDynamics/blob/main/logo-1.png?raw=true" width="300"/>
 
 Tools for simulating dynamics of quantum systems using QUBO formalism.
 
