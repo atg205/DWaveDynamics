@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "dwdynamics", from = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.1py1"
 numpy = "^2.1.2"
 dimod = "^0.12.17"
 qutip = "^5.0.4"
