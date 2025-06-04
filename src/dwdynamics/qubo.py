@@ -79,6 +79,8 @@ def real_linear_equation_qubo_norm(
     # some solvers may require variables to be labelled as consecutive integers.
     def q(i: int, digit: int):
         return i * num_bits_per_var + digit
+    
+
 
     # We first compute linear and quadratic coefficients (without constant)
     linear = dict[int, float]()
@@ -94,14 +96,15 @@ def real_linear_equation_qubo_norm(
         # Qudratic term
         for j, s in product(range(N), range(R)):
             if (j, s) != (i, r):
-                quadratic[(q(i, r), q(j, s))] = 4 * 2 ** (-r-s + D * 2) * sum(M[k][i] * M[k][j] for k in range(N))
+                quadratic_term = 4 * 2 ** (-r-s + D * 2) * sum(M[k][i] * M[k][j] for k in range(N))
+                if not np.isclose(quadratic_term, 0,atol=1e-5):
+                    quadratic[(q(i, r), q(j, s))] = quadratic_term 
 
     # Next calculate the offset. This is so that we can easily compute the residuals of
     # the solution.
     offset = 2 ** (D * 2) * (M.T.dot(M).sum())
     offset += 2 ** (D + 1) * sum(M[j, i] * Y[j] for i, j in product(range(N), range(N)))
     offset += Y.dot(Y)
-
     return BQM(linear, quadratic, offset, BINARY)
 
 
@@ -172,7 +175,9 @@ def real_symmetric_linear_equation_qubo(
         # Qudratic term
         for j, s in product(range(N), range(R)):
             if (j, s) != (i, r):
-                quadratic[(q(i, r), q(j, s))] = M[i, j] * 2 ** (1 - r - s + 2 * D)
+                quadratic_term = M[i, j] * 2 ** (1 - r - s + 2 * D)
+                if not np.isclose(quadratic_term, 0, atol=1e-15):
+                    quadratic[(q(i, r), q(j, s))] = quadratic_term
 
     offset = 2 ** D * (2 ** (D - 1) * (M.sum()) + (Y.sum()))
     return BQM(linear, quadratic, offset, BINARY)

@@ -4,7 +4,7 @@ from itertools import islice
 from typing import Callable 
 import numpy as np
 import scipy as sp
-
+import pprint
 from .operators import Operator, ComplexOperator, RealOperator, Propagator, T
 
 
@@ -74,5 +74,7 @@ def _build_clock_in_place(
     N = hamiltonian.shape[0]
     for i, (t2, t1) in enumerate(zip(islice(times, 1, None), times)):
         U_t = propagator(hamiltonian, t2, t1)
+        print("---------")
+        pprint.pprint(U_t)
         empty_clock[N * (i+1): N * (i+2), N * i: N * (i+1)] = -U_t
         empty_clock[N * i: N * (i+1), N * (i+1): N * (i+2)] = -U_t.conj().T
