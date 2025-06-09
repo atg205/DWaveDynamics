@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import pickle
+import qutip as qp
 
 def random_matrix(dims, hermitian=True):
     A = np.random.uniform(-1, 1, dims) + 1.j * np.random.uniform(-1, 1, dims)
@@ -24,3 +25,12 @@ def get_instance(id, print_desc = True):
         print(instance['about'])
         print("---------")
     return instance
+
+
+"""
+    Checks if H is PT symmetric
+"""
+def is_ptsymmetric(H):
+    P = qp.sigmax().full()
+    PT_H = P @ H.conj() @ P
+    return np.allclose(H, PT_H)

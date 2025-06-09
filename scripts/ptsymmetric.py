@@ -30,7 +30,7 @@ def generate_pt_symmetric_hamiltonian(n, seed=None):
     # Generate a random complex matrix and wrap as a Qobj with tensor dims.
     X = Qobj(np.random.randn(dim, dim) + 1j * np.random.randn(dim, dim), dims=dims)
     
-    # Build the N-qubit parity operator P = sigma_x ⊗ sigma_x ⊗ ... ⊗ sigma_x.
+    # Build the N-qubit parity operator  P = sigma_x ⊗ sigma_x ⊗ ... ⊗ sigma_x.
     P = sigmax()  # single qubit parity operator (dims: [[2], [2]])
     for _ in range(n - 1):
         P = tensor(P, sigmax())

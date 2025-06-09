@@ -93,16 +93,30 @@ def save_dwave_result(dw_result, instance_id, solver_id, precision, timepoints):
     with open(file_name,'w') as f:
         json.dump(dw_result.to_serializable(),f)
 
+def create_entangled_hamiltonian(num_qubits):
+    n = 2**num_qubits
+    H = np.zeros((n, n))
+    H[0, n-1] = 1
+    H[n-1, 0] = 1
+    return H
 
 def main():
     precision = 2
     number_time_points = 2
-    instance_id = 4
+    instance_id = 6
     solver_id = "5.4"
 
+
+    PSI0 = np.array([1, 0,0,0,0,0,0,0], dtype=np.complex128)  
+    H = np.pi/2*create_entangled_hamiltonian(3)
+    print(H)
+    #save_instance(PSI0,H,"two qubit entanglement", instance_id)
+
     qubo = create_instance(precision=precision, number_time_points=number_time_points, instance_id=instance_id)
-    dw_result = get_sampleset(qubo, solver_id) 
-    save_dwave_result(dw_result,instance_id=instance_id, solver_id=solver_id, precision=precision,timepoints=number_time_points)
+
+    for _ in tqdm(range(10)):
+        dw_result = get_sampleset(qubo, solver_id) 
+        save_dwave_result(dw_result,instance_id=instance_id, solver_id=solver_id, precision=precision,timepoints=number_time_points)
 
 
 
