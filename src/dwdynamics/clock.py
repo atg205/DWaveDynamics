@@ -76,5 +76,6 @@ def _build_clock_in_place(
         U_t = propagator(hamiltonian, t2, t1)
         print("---------")
         pprint.pprint(U_t)
+        print("------")
         empty_clock[N * (i+1): N * (i+2), N * i: N * (i+1)] = -U_t
         empty_clock[N * i: N * (i+1), N * (i+1): N * (i+2)] = -U_t.conj().T
