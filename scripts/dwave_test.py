@@ -1,19 +1,14 @@
 import numpy as np
-import networkx as nx
-from dwdynamics import ComplexDynamicsProblem, Objective, helpers # Difference a. We are using ComplexDynamicsProblem
+from dwdynamics import ComplexDynamicsProblem, Objective, helpers,instance # Difference a. We are using ComplexDynamicsProblem
 import matplotlib.pyplot as plt
 import json
 import os
-from dwave_networkx.generators.pegasus import (get_tuple_defragmentation_fn, fragmented_edges,
-    pegasus_coordinates, pegasus_graph)
+
 from dwave.system import DWaveSampler, EmbeddingComposite
-import matplotlib.pyplot as plt
-from collections import defaultdict
+
+
 import re
 from tqdm import tqdm
-import ptsymmetric
-import pickle
-import math
 
 """
     Saves the information concerning an instance to a json file in /data/instance
@@ -96,24 +91,13 @@ def save_dwave_result(dw_result, instance_id, solver_id, precision, timepoints):
 
 
 def main():
-    precision = 4
     number_time_points = 2
     instance_id = 8
     solver_id = "5.4"
 
-    H = np.array([[0,-1.0j],[1.0j,0]])
-    print(H)
-    for number_time_points in range(2,5):
-        PSI0 = np.array([1, 0], dtype=np.complex128)
-        #print(H)
-        #save_instance(PSI0,H,"sigma_y", instance_id,overwrite=False)
-
-        qubo = create_instance(precision=precision, number_time_points=number_time_points, instance_id=instance_id)
-
-    #for _ in tqdm(range(1)):
-        #dw_result = get_sampleset(qubo, solver_id) 
-        #save_dwave_result(dw_result,instance_id=instance_id, solver_id=solver_id, precision=precision,timepoints=number_time_points)
-
+    for precision in [5,6,7]:
+        i = instance.Instance(instance_id)
+        i.create_instance(precision, number_time_points,save=True)
 
 
 if __name__ == "__main__":

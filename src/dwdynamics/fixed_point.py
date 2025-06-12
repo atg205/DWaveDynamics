@@ -22,7 +22,9 @@ def decode_number(bits: Sequence[int], exp_offset: int = 0) -> float:
     Returns:
         Decoded number, as float.
     """
-    return 2 ** exp_offset * (2 * sum(2 ** (-alpha) * bit for alpha, bit in enumerate(bits)) - 1)
+    number_decoded = 2 ** exp_offset * (2 * sum(2 ** (-alpha) * bit 
+                                      for alpha, bit in enumerate(bits)) - 1)
+    return number_decoded
 
 
 def decode_sample(

@@ -6,12 +6,23 @@ import math
 import networkx as nx
 import matplotlib.pyplot as plt
 import functools as ft
+import re
+
 
 def random_matrix(dims, hermitian=True):
     A = np.random.uniform(-1, 1, dims) + 1.j * np.random.uniform(-1, 1, dims)
     if hermitian:
         return A + A.conj().T
     return A
+
+
+def get_last_index(files: list[str])-> int:
+    """
+        Returns last index of the files specified in input files  
+    """
+    if files == []:
+        return 0
+    return max([int(re.findall('\d+(?=\.json)',file)[0]) for file in files])
 
 
 """
@@ -58,7 +69,7 @@ def generate_pt_symmetric_real_eig(a):
     Creates a Hamiltonian of the form 
     H = |0...0><1...1| + |1...1><0...0|
 """
-def create_entangled_hamiltonian(num_qubits):
+def create_entangled_hamiltonian(num_qubits: int):
     n = 2**num_qubits
     H = np.zeros((n, n))
     H[0, n-1] = 1
@@ -98,3 +109,10 @@ def print_graph(G):
     plt.axis("off")
     plt.tight_layout()
     plt.show()
+
+def result_string_to_dict(input_string:str)->dict[int,int]:
+    return {i:int(bit) for i,bit in enumerate(list(input_string)[::-1])}
+
+
+
+
