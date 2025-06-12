@@ -91,7 +91,7 @@ def save_dwave_result(dw_result, instance_id, solver_id, precision, timepoints):
 
 
 def main():
-    number_time_points = 2
+    number_time_points = 3
     instance_id = 8
     solver_id = "5.4"
 
