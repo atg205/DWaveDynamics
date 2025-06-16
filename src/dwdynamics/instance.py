@@ -49,7 +49,7 @@ class Instance:
 
     def get_sampleset(self,solver_id="5.4"):
         """
-            Runs one sample on the indicated D-Wave machine
+            Runs 1000 samples on the indicated D-Wave machine
         """
         if solver_id == "5.4":
             dw_sampler = EmbeddingComposite(DWaveSampler( solver="Advantage_system5.4", region="eu-central-1", ))
@@ -60,7 +60,7 @@ class Instance:
         else:
             raise ValueError("Invalid solver id")
 
-        self.dw_result = dw_sampler.sample(self.problem.qubo, num_reads=1000, annealing_time=200)
+        self.dw_result = dw_sampler.sample(self.problem.qubo(), num_reads=1000, annealing_time=200)
 
         path = f"data/results/pruned/{self._id}/{solver_id}"
         path = os.path.join(self.basepath, path)
