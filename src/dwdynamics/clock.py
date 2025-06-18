@@ -6,7 +6,7 @@ import numpy as np
 import scipy as sp
 import pprint
 from .operators import Operator, ComplexOperator, RealOperator, Propagator, T
-
+import pprint
 
 
 def explicit_propagator(hamiltonian: ComplexOperator, t2: float, t1: float) -> ComplexOperator:
@@ -43,6 +43,7 @@ def build_complex_clock(
     clock = 2 * np.eye(len(times) * N).astype(np.complex128)
     clock[-N:, -N:] = np.eye(N)
     _build_clock_in_place(clock, hamiltonian, times, propagator)
+    pprint.pprint(clock)
     return clock
 
 

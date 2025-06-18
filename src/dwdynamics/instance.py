@@ -47,7 +47,7 @@ class Instance:
                 json.dump(self.qubo.to_serializable(),f)
 
 
-    def get_sampleset(self,solver_id="5.4"):
+    def generate_and_save_sampleset(self,solver_id="5.4"):
         """
             Runs 1000 samples on the indicated D-Wave machine
         """
@@ -61,6 +61,7 @@ class Instance:
             raise ValueError("Invalid solver id")
 
         self.dw_result = dw_sampler.sample(self.problem.qubo(), num_reads=1000, annealing_time=200)
+        self.save_access_time(int(self.dw_result.info['timing']['qpu_access_time']))
 
         path = f"data/results/pruned/{self._id}/{solver_id}"
         path = os.path.join(self.basepath, path)
@@ -122,6 +123,16 @@ class Instance:
 
         assert content[0:6] == 'Energy', 'File does not have correct structure'
         return pd.read_csv(StringIO(content),sep=r'\s+',dtype={'Energy':np.float64,'State':'str'})
+
+    def save_access_time(self, at: int):
+        """
+            Saves access time to file /data/time.json
+        """
+        with open(os.path.join(self.basepath, 'data','time.json'), 'r') as f:
+            at_dict = json.load(f)
+        at_dict['time_us'] += at
+        with open(os.path.join(os.getcwd(), 'data', 'time.json'), 'r+') as f:
+            json.dump(at_dict, f)
 
     def get_qubo(self) -> BQM:
         return self.qubo

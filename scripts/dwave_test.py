@@ -23,15 +23,19 @@ def save_instance(PSI0, H, description, id, overwrite=False):
         pickle.dump(instance_dict,f)
 
 def main():
-    number_time_points = [2,3,4]
-    instance_id = 9
-    solver_id = "5.4"
-    precision = [2,3,4,5,6,7]
-    
-    for tp in number_time_points:
-        for p in precision:
-            inst = instance.Instance(instance_id)
-            inst.create_instance(p,tp,save=True)
+    number_time_points = [2,3,4,5]
+    solver_id = "6.4"
+    precision = 2
+    systems = [1,2,4,5,6,7]
+
+    for system in tqdm(systems):
+        inst = instance.Instance(system)
+        for tp in tqdm(number_time_points):
+            inst.create_instance(precision=precision, number_time_points=tp,save=True)
+            for _ in tqdm(range(5)):
+                inst.generate_and_save_sampleset(solver_id="6.4")
+
+        
     
 
 

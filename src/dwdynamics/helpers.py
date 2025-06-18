@@ -7,7 +7,10 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import functools as ft
 import re
-
+import pandas as pd
+from collections import defaultdict
+import json
+import dimod
 
 def random_matrix(dims, hermitian=True):
     A = np.random.uniform(-1, 1, dims) + 1.j * np.random.uniform(-1, 1, dims)
@@ -114,5 +117,79 @@ def result_string_to_dict(input_string:str)->dict[int,int]:
     return {i:int(bit) for i,bit in enumerate(list(input_string)[::-1])}
 
 
+def get_velox_results(system: int)->pd.DataFrame:
+    df = pd.read_csv(f'../data/results/pruned/{system}/best_results_pruned_{system}_native.csv')
+    df_dict= defaultdict(list)
+    for row in df.itertuples():
+        precision, timepoints = re.findall(r'\d+',str(row.instance))
+        df_dict['precision'].append(int(precision))
+        df_dict['timepoints'].append(int(timepoints))
+        df_dict['num_steps'].append(int(row.num_steps))
+        df_dict['runtime'].append(float(row.runtime)*1e3)
+        df_dict['gap'].append(float(row.gap))
+        df_dict['num_rep'].append(int(row.num_rep))
+        df_dict['success_prob'].append(float(row.success_prob))
+        df_dict['solution'].append(row.best_solution.replace("-1","0").replace(';',''))
+        df_dict['num_var'].append(int(row.num_var))
+    return pd.DataFrame(df_dict)
 
+def get_dwave_success_rates(system: int,topology="6.4")->pd.DataFrame:
+    path = f'../data/results/pruned/{system}/'
 
+    dfs = []
+    df_dict = defaultdict(list)
+    for topology in [topology]:
+        path += topology
+        for file in os.listdir(path):
+            df_dict['precision'].append(int(re.findall('(?<=precision_)\d+',file)[0]))
+            df_dict['timepoints'].append(int(re.findall('(?<=timepoints_)\d+',file)[0]))
+            with open(os.path.join(path,file),'r') as f:
+                s = dimod.SampleSet.from_serializable(json.load(f))
+        
+            qpu_access_time = s.info['timing']['qpu_access_time']
+            df = s.to_pandas_dataframe()
+            df['energy'] = abs(round(df['energy'],10))
+
+            df = df[['energy','num_occurrences']].groupby(by=["energy"]).sum().reset_index()
+            if len(df[df.energy== 0]) == 0:
+                success_rate = 0.0
+            else:
+                success_rate = int(df[df.energy == 0]['num_occurrences'].iloc[0])
+            success_rate /= df['num_occurrences'].sum()
+            
+            access_time = qpu_access_time / df['num_occurrences'].sum() * 1e-3
+            df_dict['topology'].append(topology)
+            df_dict['success_prob'].append(success_rate)
+            df_dict['runtime'].append(access_time)
+            df_dict['num_var'].append(len(s.variables))
+            #s['energy'] = abs(round(s['energy'],10)) 
+            dfs.append(pd.DataFrame(df_dict))
+
+    dfs_all = pd.concat(dfs)
+    dfs_all = dfs_all.groupby(['precision','timepoints','topology']).mean().reset_index()
+
+    return dfs_all
+
+def get_precision_timepoints_pairs(dfs):
+    dfs = dfs.groupby(['precision','timepoints'])['num_occurrences'].count()
+    return list(set(dfs.index))
+
+def get_velox_success_rates(system:int)->pd.DataFrame:
+    df = get_velox_results(system=system)
+    df = df[df.num_steps == 1000]
+    df['success_prob'] = (df['success_prob'] * df['num_rep']) 
+    #df['runtime'] = df['runtime'] / df['num_rep'] 
+
+    df = df.groupby(['precision','timepoints','num_steps','num_var']).agg({'runtime': 'mean',
+                                                                'num_rep' : 'sum',
+                                                                'success_prob':'sum'}).reset_index()
+    df['success_prob'] /= df['num_rep']
+    df['runtime'] /= df['num_rep']
+    df['success_prob'] /= 100
+
+    return df
+
+def return_tts(p_success: float,t:float, p_target=0.99)->float:
+    if p_success == 0:
+        return math.inf
+    return (math.log(1-p_target) / math.log(1-p_success))*t
