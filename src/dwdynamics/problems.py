@@ -103,7 +103,7 @@ class ComplexDynamicsProblem:
 
     def qubo(self, objective: Objective = Objective.norm, propagator: Propagator[np.complex128] = explicit_propagator) -> BQM:
         """Create a QUBO corresponding to this problem, optionally overriding how the propagators are computed."""
-        return self.to_linear_eq_problem().qubo()
+        return self.to_linear_eq_problem().qubo(objective=objective)
 
     def to_linear_eq_problem(self) -> RealLinearEquationProblem:
         """Convert this dynamics problem to a problem of solving real linear equation."""

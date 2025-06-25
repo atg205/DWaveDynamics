@@ -7,14 +7,19 @@ import pandas as pd
 from io import StringIO
 import numpy as np
 import subprocess
+import pickle
+import qutip as qp
 
 class Instance:
     def __init__(
             self,
-            instance_id: int
+            instance_id: int,
+            objective = Objective.hessian
     ):
         self._id = instance_id
         self.basepath ='../' if os.getcwd()[-9:] == 'notebooks' else '' # for execution in jupyter notebooks
+        self.objective = objective
+        self.objective_path = 'norm' if objective == Objective.norm else 'hessian'
 
     
     def create_instance(self, precision: int, number_time_points:int, save = False):
@@ -23,7 +28,11 @@ class Instance:
         """
         self.precision = precision
         self.number_time_points = number_time_points
-        instance_dict = helpers.get_instance(self._id)
+
+        file_name = os.path.join(self.basepath,'data','instances', f"{self._id}.pckl")
+
+        with open(file_name,'rb') as f:
+            instance_dict = pickle.load(f)
         self.H = instance_dict['H']
         self.psi0 = instance_dict['psi0']
 
@@ -33,13 +42,13 @@ class Instance:
             times=tuple(range(number_time_points)),             
             num_bits_per_var=precision                
         )
-        self.qubo = self.problem.qubo(objective=Objective.norm)           
+        self.qubo = self.problem.qubo(objective=self.objective)           
         assert self.qubo.num_variables == self.problem.hamiltonian.shape[0] * len(self.problem.times) * self.problem.num_bits_per_var * 2
 
         # save instances in the form 
         # systemid_{d}_precision_{d}_timepoints_{d}.json
         if save:
-            path = f"data/instances/pruned/{self._id}"
+            path = f"data/instances/{self.objective_path}/{self._id}"
 
             file_name = os.path.join(self.basepath, path, f"precision_{precision}_timepoints_{number_time_points}.json")
             os.makedirs(path, exist_ok=True)
@@ -60,10 +69,10 @@ class Instance:
         else:
             raise ValueError("Invalid solver id")
 
-        self.dw_result = dw_sampler.sample(self.problem.qubo(), num_reads=1000, annealing_time=200)
+        self.dw_result = dw_sampler.sample(self.qubo, num_reads=1000, annealing_time=200)
         self.save_access_time(int(self.dw_result.info['timing']['qpu_access_time']))
 
-        path = f"data/results/pruned/{self._id}/{solver_id}"
+        path = f"data/results/{self.objective_path}/{self._id}/{solver_id}"
         path = os.path.join(self.basepath, path)
         os.makedirs(path, exist_ok=True)
         idx = helpers.get_last_index(os.listdir(path)) +1
@@ -134,6 +143,20 @@ class Instance:
         with open(os.path.join(os.getcwd(), 'data', 'time.json'), 'r+') as f:
             json.dump(at_dict, f)
 
+    def verify_sample(self, sample: str)->bool:
+        SZ = np.array([[1, 0], [0, -1]])
+
+        exact_vec = self.problem.interpret_sample(sample)
+        exact_expect = [(state.conj() @ SZ @ state).real for state in exact_vec]
+        times = [i for i in range(self.number_time_points)]
+
+        baseline = qp.mesolve(qp.Qobj(self.H), qp.basis(2, 0),times, e_ops=[qp.sigmaz()]).expect[0]
+        assert(np.allclose(baseline, exact_expect))
+
+
+    def interpret_velox_result(self, velox_result: str):
+        velox_result_dict = helpers.result_string_to_dict(velox_result)
+        self.problem.interpret_sample()
     def get_qubo(self) -> BQM:
         return self.qubo
 

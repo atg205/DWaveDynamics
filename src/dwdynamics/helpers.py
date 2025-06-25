@@ -11,6 +11,7 @@ import pandas as pd
 from collections import defaultdict
 import json
 import dimod
+from dwdynamics import instance
 
 def random_matrix(dims, hermitian=True):
     A = np.random.uniform(-1, 1, dims) + 1.j * np.random.uniform(-1, 1, dims)
@@ -25,7 +26,7 @@ def get_last_index(files: list[str])-> int:
     """
     if files == []:
         return 0
-    return max([int(re.findall('\d+(?=\.json)',file)[0]) for file in files])
+    return max([int(re.findall(r'\d+(?=\.json)',file)[0]) for file in files])
 
 
 """
@@ -80,6 +81,18 @@ def create_entangled_hamiltonian(num_qubits: int):
     return H
 
 """
+    Creates a Hamiltonian of the form 
+    H = |1...0><0...1| + |0...1><1...0|
+"""
+def create_entangled_parity_hamiltonian(num_qubits: int):
+    ket01 = qp.tensor([qp.basis(2, 0)]*(num_qubits-1)+[qp.basis(2, 1)])
+    ket10 = qp.tensor([qp.basis(2, 1)]+[qp.basis(2, 0)]*(num_qubits-1))
+
+    H = 1/2*np.pi* (ket01*ket10.dag() +ket10*ket01.dag()).full()
+    psi_0 = qp.basis(2**num_qubits, 1).full()
+    return psi_0, H
+
+"""
     Create another entanglement Hamilonian for two qubits
 """
 def other_entangled_hamiltonian():
@@ -114,11 +127,14 @@ def print_graph(G):
     plt.show()
 
 def result_string_to_dict(input_string:str)->dict[int,int]:
-    return {i:int(bit) for i,bit in enumerate(list(input_string)[::-1])}
+    return {i:int(bit) for i,bit in enumerate(list(input_string))}
 
+def get_basepath():
+    return '../' if os.getcwd()[-9:] == 'notebooks' else '' # for execution in jupyter notebooks
 
 def get_velox_results(system: int)->pd.DataFrame:
-    df = pd.read_csv(f'../data/results/pruned/{system}/best_results_pruned_{system}_native.csv')
+    path = os.path.join(get_basepath(), f'data/results/norm/{system}/best_results_pruned_{system}_native.csv')
+    df = pd.read_csv(path)
     df_dict= defaultdict(list)
     for row in df.itertuples():
         precision, timepoints = re.findall(r'\d+',str(row.instance))
@@ -134,15 +150,20 @@ def get_velox_results(system: int)->pd.DataFrame:
     return pd.DataFrame(df_dict)
 
 def get_dwave_success_rates(system: int,topology="6.4")->pd.DataFrame:
-    path = f'../data/results/pruned/{system}/'
+    path = f'../data/results/hessian/{system}/'
 
     dfs = []
     df_dict = defaultdict(list)
     for topology in [topology]:
         path += topology
         for file in os.listdir(path):
-            df_dict['precision'].append(int(re.findall('(?<=precision_)\d+',file)[0]))
-            df_dict['timepoints'].append(int(re.findall('(?<=timepoints_)\d+',file)[0]))
+            df_dict['precision'].append(int(re.findall(r'(?<=precision_)\d+',file)[0]))
+            df_dict['timepoints'].append(int(re.findall(r'(?<=timepoints_)\d+',file)[0]))
+
+            #inst = instance.Instance(system)
+            #inst.create_instance(int(re.findall(r'(?<=precision_)\d+',file)[0]),int(re.findall(r'(?<=timepoints_)\d+',file)[0]) )
+
+
             with open(os.path.join(path,file),'r') as f:
                 s = dimod.SampleSet.from_serializable(json.load(f))
         
@@ -155,6 +176,8 @@ def get_dwave_success_rates(system: int,topology="6.4")->pd.DataFrame:
                 success_rate = 0.0
             else:
                 success_rate = int(df[df.energy == 0]['num_occurrences'].iloc[0])
+                #sample = s.first.sample
+                #inst.verify_sample(sample)
             success_rate /= df['num_occurrences'].sum()
             
             access_time = qpu_access_time / df['num_occurrences'].sum() * 1e-3
@@ -180,7 +203,7 @@ def get_velox_success_rates(system:int)->pd.DataFrame:
     df['success_prob'] = (df['success_prob'] * df['num_rep']) 
     #df['runtime'] = df['runtime'] / df['num_rep'] 
 
-    df = df.groupby(['precision','timepoints','num_steps','num_var']).agg({'runtime': 'mean',
+    df = df.groupby(['precision','timepoints','num_steps','num_var']).agg({'runtime': 'sum',
                                                                 'num_rep' : 'sum',
                                                                 'success_prob':'sum'}).reset_index()
     df['success_prob'] /= df['num_rep']

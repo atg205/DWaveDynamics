@@ -97,7 +97,7 @@ def real_linear_equation_qubo_norm(
         for j, s in product(range(N), range(R)):
             if (j, s) != (i, r):
                 quadratic_term = 4 * 2 ** (-r-s + D * 2) * sum(M[k][i] * M[k][j] for k in range(N))
-                if abs(quadratic_term) > 1e-3 :
+                if abs(quadratic_term) > 1e-10 :
                     quadratic[(q(i, r), q(j, s))] = quadratic_term 
 
     # Next calculate the offset. This is so that we can easily compute the residuals of
@@ -176,8 +176,8 @@ def real_symmetric_linear_equation_qubo(
         for j, s in product(range(N), range(R)):
             if (j, s) != (i, r):
                 quadratic_term = M[i, j] * 2 ** (1 - r - s + 2 * D)
-                if abs(quadratic_term) > 1e-3:
+                if abs(quadratic_term) > 1e-10:
                     quadratic[(q(i, r), q(j, s))] = quadratic_term
 
-    offset = 2 ** D * (2 ** (D - 1) * (M.sum()) + (Y.sum()))
+    offset = 2 ** D * (2 ** (D - 1) * (M.sum()) + (Y.sum())) + 0.5
     return BQM(linear, quadratic, offset, BINARY)

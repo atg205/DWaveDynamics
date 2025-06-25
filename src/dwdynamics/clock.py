@@ -43,7 +43,7 @@ def build_complex_clock(
     clock = 2 * np.eye(len(times) * N).astype(np.complex128)
     clock[-N:, -N:] = np.eye(N)
     _build_clock_in_place(clock, hamiltonian, times, propagator)
-    pprint.pprint(clock)
+    print(clock)
     return clock
 
 
@@ -75,8 +75,5 @@ def _build_clock_in_place(
     N = hamiltonian.shape[0]
     for i, (t2, t1) in enumerate(zip(islice(times, 1, None), times)):
         U_t = propagator(hamiltonian, t2, t1)
-        print("---------")
-        pprint.pprint(U_t)
-        print("------")
         empty_clock[N * (i+1): N * (i+2), N * i: N * (i+1)] = -U_t
         empty_clock[N * i: N * (i+1), N * (i+1): N * (i+2)] = -U_t.conj().T
