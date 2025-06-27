@@ -141,6 +141,7 @@ def real_symmetric_linear_equation_qubo(
     """
     # Shorten variable names so that we don't go insane writing expressions.
     M = np.asarray(coeff_matrix).squeeze()
+    print(M)
     Y = np.asarray(rhs).squeeze()
     R = num_bits_per_var
     D = exp_offset
