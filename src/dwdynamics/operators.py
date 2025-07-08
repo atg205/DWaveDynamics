@@ -14,3 +14,4 @@ Propagator = Callable[[ComplexOperator, float, float], Operator[T]]
 Vector: TypeAlias = np.ndarray[tuple[int], np.dtype[T]]
 RealVector: TypeAlias = Vector[np.float64]
 ComplexVector: TypeAlias = Vector[np.complex128]
+

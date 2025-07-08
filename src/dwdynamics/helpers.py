@@ -73,7 +73,7 @@ def generate_pt_symmetric_real_eig(a):
     Creates a Hamiltonian of the form 
     H = |0...0><1...1| + |1...1><0...0|
 """
-def create_entangled_hamiltonian(num_qubits: int):
+def generate_entangled_hamiltonian(num_qubits: int):
     n = 2**num_qubits
     H = np.zeros((n, n))
     H[0, n-1] = 1
@@ -84,7 +84,7 @@ def create_entangled_hamiltonian(num_qubits: int):
     Creates a Hamiltonian of the form 
     H = |1...0><0...1| + |0...1><1...0|
 """
-def create_entangled_parity_hamiltonian(num_qubits: int):
+def generate_entangled_parity_hamiltonian(num_qubits: int):
     ket01 = qp.tensor([qp.basis(2, 0)]*(num_qubits-1)+[qp.basis(2, 1)])
     ket10 = qp.tensor([qp.basis(2, 1)]+[qp.basis(2, 0)]*(num_qubits-1))
 

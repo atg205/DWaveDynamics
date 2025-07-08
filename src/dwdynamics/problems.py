@@ -100,6 +100,26 @@ class ComplexDynamicsProblem:
     num_bits_per_var: int
     exp_offset: int = 0
     propagator: Propagator[np.complex128] = explicit_propagator
+    clock: np.ndarray = None  # Optional user-supplied clock
+
+    def get_clock(self):
+        """Return the clock matrix used for this problem."""
+        if self.clock is not None:
+            return self.clock
+        N = len(self.initial_state)
+        return build_complex_clock(self.hamiltonian, self.times, self.propagator)
+
+    def set_clock(self, clock):
+        """Return a new instance with the given clock matrix set."""
+        return self.__class__(
+            hamiltonian=self.hamiltonian,
+            initial_state=self.initial_state,
+            times=self.times,
+            num_bits_per_var=self.num_bits_per_var,
+            exp_offset=self.exp_offset,
+            propagator=self.propagator,
+            clock=clock
+        )
 
     def qubo(self, objective: Objective = Objective.norm, propagator: Propagator[np.complex128] = explicit_propagator) -> BQM:
         """Create a QUBO corresponding to this problem, optionally overriding how the propagators are computed."""
@@ -109,16 +129,18 @@ class ComplexDynamicsProblem:
         """Convert this dynamics problem to a problem of solving real linear equation."""
         return self._linear_eq_problem
 
+
+   
     @cached_property
     def _linear_eq_problem(self) -> RealLinearEquationProblem:
         N = len(self.initial_state)
-        clock = build_complex_clock(self.hamiltonian, self.times, self.propagator)
+        clock = self.get_clock()
         rhs = np.hstack([self.initial_state.squeeze(), np.zeros(N * (len(self.times)-1), dtype=np.complex128)])
-
         real_rhs = [comp for x in rhs for comp in (x.real, x.imag)]
-
+        #clock = np.vectorize(lambda x: x.real)(clock)
         return RealLinearEquationProblem(
             coeff_matrix=embed_complex(clock),
+            #coeff_matrix=clock,
             rhs=real_rhs,
             num_bits_per_var=self.num_bits_per_var,
             exp_offset=self.exp_offset

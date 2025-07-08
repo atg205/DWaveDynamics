@@ -23,24 +23,28 @@ def save_instance(PSI0, H, description, id, overwrite=False):
         pickle.dump(instance_dict,f)
 
 def main():
-    number_time_points = [2,3,4,5]
+    number_time_points = [i for i in range(6,10)]
     solver_id = "6.4"
-    systems = [1,2,4,5,6,7]
-    systems = [11]
-    precision =3
+    precision =2
 
-    for system in [16]:
-        systems = [system]
-        N = 2
-        psi0,H = helpers.create_entangled_parity_hamiltonian(N)
-        save_instance(psi0,0.5*H,f"0.5* entangled parity hamiltonian with {N} qubits",system,overwrite=True)
 
-        for system in tqdm(systems):
-            inst = instance.Instance(system)
-            for tp in tqdm(number_time_points):
-                inst.create_instance(precision=precision, number_time_points=tp,save=True)
-                for _ in tqdm(range(5)):
-                    inst.generate_and_save_sampleset(solver_id="6.4")
+    sigma_x = np.array([[0,1],[1,0]])
+    sigma_y = np.array([[0,-1j],[1j,0]])
+    sigma_z = np.array([[1,0],[0,-1]])
+
+
+    psi_0,H = helpers.generate_entangled_parity_hamiltonian(2)
+    print(H)
+
+    save_instance(psi_0,H,"generate_entangled_parity_hamiltonian",id=9,overwrite=True)
+
+
+    for system in [9]:
+        inst = instance.Instance(system)
+        for tp in tqdm(number_time_points):
+            inst.create_instance(precision=precision, number_time_points=tp,save=True)
+            for _ in tqdm(range(5)):
+                inst.generate_and_save_sampleset(solver_id="6.4")
 
 
 

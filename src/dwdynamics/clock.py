@@ -11,7 +11,7 @@ import pprint
 
 def explicit_propagator(hamiltonian: ComplexOperator, t2: float, t1: float) -> ComplexOperator:
     """Given a hamiltonian and two times t2 > t1, return a propagator explicitly computed via matrix exponentiation."""
-    return sp.linalg.expm(1.0j * (t1 - t2) * hamiltonian)
+    return sp.linalg.expm(1.0j *(t1 - t2) * hamiltonian)
 
 
 def _truncate_imaginary(func: Propagator[np.complex128]) -> Propagator[np.float64]:
@@ -43,7 +43,6 @@ def build_complex_clock(
     clock = 2 * np.eye(len(times) * N).astype(np.complex128)
     clock[-N:, -N:] = np.eye(N)
     _build_clock_in_place(clock, hamiltonian, times, propagator)
-    print(clock)
     return clock
 
 
@@ -75,5 +74,6 @@ def _build_clock_in_place(
     N = hamiltonian.shape[0]
     for i, (t2, t1) in enumerate(zip(islice(times, 1, None), times)):
         U_t = propagator(hamiltonian, t2, t1)
+        print(U_t)
         empty_clock[N * (i+1): N * (i+2), N * i: N * (i+1)] = -U_t
         empty_clock[N * i: N * (i+1), N * (i+1): N * (i+2)] = -U_t.conj().T

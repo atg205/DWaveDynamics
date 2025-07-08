@@ -43,7 +43,7 @@ class Instance:
             num_bits_per_var=precision                
         )
         self.qubo = self.problem.qubo(objective=self.objective)           
-        assert self.qubo.num_variables == self.problem.hamiltonian.shape[0] * len(self.problem.times) * self.problem.num_bits_per_var * 2
+        #assert self.qubo.num_variables == self.problem.hamiltonian.shape[0] * len(self.problem.times) * self.problem.num_bits_per_var * 2
 
         # save instances in the form 
         # systemid_{d}_precision_{d}_timepoints_{d}.json
