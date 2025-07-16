@@ -5,7 +5,6 @@ from itertools import product
 import numpy as np
 import numpy.typing as npt
 from dimod import BQM, BINARY, BinaryQuadraticModel
-import sympy 
 
 from .operators import RealOperator, Vector
 
@@ -150,21 +149,6 @@ def real_symmetric_linear_equation_qubo(
     N = len(Y)
     linear = {}
     quadratic = {}
-
-    #x_symbols = sympy.symarray('x',len(Y) * num_bits_per_var)
-    #x = np.array([])
-    #for i in range(0,len(Y)*2,2):
-    #    x = np.append(x,2*(x_symbols[i]+0.5*x_symbols[i+1])-1)
-
-
-    #xAx = x.T @ M @ x
-    #x_phi = x.T @ Y
-    #objective_function = (0.5*xAx - x_phi)
-    # expand and simplify with x**2  = x for x = 0,1
-    #objective_function = sympy.expand(objective_function).subs([(term**2, term) for term in x])
-    #objective_function = objective_function.as_coefficients_dict()
-    #qubo = {(tuple(str(k).split('*'))*2)[0:2] : v  for k,v in objective_function.items() if len(str(k).split('*')) < 3 and k != 1}
-    #return BinaryQuadraticModel(vartype=BINARY).from_qubo(Q=qubo)
 
     if len(M.shape) != 2:
         raise ValueError(f"Only two dimensional coefficient matrices are supported. Shape passed: {M.shape}.")

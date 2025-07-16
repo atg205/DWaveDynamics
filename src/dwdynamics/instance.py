@@ -56,20 +56,20 @@ class Instance:
                 json.dump(self.qubo.to_serializable(),f)
 
 
-    def generate_and_save_sampleset(self,solver_id="5.4"):
+    def generate_and_save_sampleset(self,solver_id="5.4", ta=200):
         """
             Runs 1000 samples on the indicated D-Wave machine
         """
         if solver_id == "5.4":
             dw_sampler = EmbeddingComposite(DWaveSampler( solver="Advantage_system5.4", region="eu-central-1", ))
-        elif solver_id == "2.6": # zephyr
-            dw_sampler = EmbeddingComposite(DWaveSampler( solver="Advantage2_prototype2.6"))
+        elif solver_id == "1.3": # zephyr
+            dw_sampler = EmbeddingComposite(DWaveSampler( solver="Advantage2_system1.3"))
         elif solver_id == "6.4": 
             dw_sampler = EmbeddingComposite(DWaveSampler(solver="Advantage_system6.4"))
         else:
             raise ValueError("Invalid solver id")
 
-        self.dw_result = dw_sampler.sample(self.qubo, num_reads=1000, annealing_time=200)
+        self.dw_result = dw_sampler.sample(self.qubo, num_reads=1000, annealing_time=ta)
         self.save_access_time(int(self.dw_result.info['timing']['qpu_access_time']))
 
         path = f"data/results/{self.objective_path}/{self._id}/{solver_id}"

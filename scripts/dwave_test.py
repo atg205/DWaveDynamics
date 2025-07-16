@@ -23,7 +23,8 @@ def save_instance(PSI0, H, description, id, overwrite=False):
         pickle.dump(instance_dict,f)
 
 def main():
-    number_time_points = [i for i in range(6,10)]
+    number_time_points = [i for i in range(2,5)]
+    number_time_points = [2]
     solver_id = "6.4"
     precision =2
 
@@ -33,18 +34,15 @@ def main():
     sigma_z = np.array([[1,0],[0,-1]])
 
 
-    psi_0,H = helpers.generate_entangled_parity_hamiltonian(2)
-    print(H)
-
-    save_instance(psi_0,H,"generate_entangled_parity_hamiltonian",id=9,overwrite=True)
 
 
-    for system in [9]:
-        inst = instance.Instance(system)
-        for tp in tqdm(number_time_points):
-            inst.create_instance(precision=precision, number_time_points=tp,save=True)
-            for _ in tqdm(range(5)):
-                inst.generate_and_save_sampleset(solver_id="6.4")
+    for system in tqdm([9]):
+        for ta in tqdm([200],leave=False):
+            inst = instance.Instance(system)
+            for tp in tqdm(number_time_points):
+                inst.create_instance(precision=precision, number_time_points=tp,save=False)
+                for _ in tqdm(range(5),leave=False):
+                    inst.generate_and_save_sampleset(solver_id=solver_id,ta=ta)
 
 
 

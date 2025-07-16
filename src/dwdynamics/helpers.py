@@ -133,7 +133,7 @@ def get_basepath():
     return '../' if os.getcwd()[-9:] == 'notebooks' else '' # for execution in jupyter notebooks
 
 def get_velox_results(system: int)->pd.DataFrame:
-    path = os.path.join(get_basepath(), f'data/results/norm/{system}/best_results_pruned_{system}_native.csv')
+    path = os.path.join(get_basepath(), f'data/results/hessian/{system}/best_results_hessian_{system}_native.csv')
     df = pd.read_csv(path)
     df_dict= defaultdict(list)
     for row in df.itertuples():
@@ -149,7 +149,7 @@ def get_velox_results(system: int)->pd.DataFrame:
         df_dict['num_var'].append(int(row.num_var))
     return pd.DataFrame(df_dict)
 
-def get_dwave_success_rates(system: int,topology="6.4")->pd.DataFrame:
+def get_dwave_success_rates(system: int,topology="6.4",ta=200,grouped=True)->pd.DataFrame:
     path = f'../data/results/hessian/{system}/'
 
     dfs = []
@@ -157,8 +157,7 @@ def get_dwave_success_rates(system: int,topology="6.4")->pd.DataFrame:
     for topology in [topology]:
         path += topology
         for file in os.listdir(path):
-            df_dict['precision'].append(int(re.findall(r'(?<=precision_)\d+',file)[0]))
-            df_dict['timepoints'].append(int(re.findall(r'(?<=timepoints_)\d+',file)[0]))
+
 
             #inst = instance.Instance(system)
             #inst.create_instance(int(re.findall(r'(?<=precision_)\d+',file)[0]),int(re.findall(r'(?<=timepoints_)\d+',file)[0]) )
@@ -168,6 +167,13 @@ def get_dwave_success_rates(system: int,topology="6.4")->pd.DataFrame:
                 s = dimod.SampleSet.from_serializable(json.load(f))
         
             qpu_access_time = s.info['timing']['qpu_access_time']
+            annealing_time = s.info['timing']['qpu_anneal_time_per_sample']
+            if not ta == annealing_time:
+                continue
+            timepoints = int(re.findall(r'(?<=timepoints_)\d+',file)[0])
+
+            df_dict['precision'].append(int(re.findall(r'(?<=precision_)\d+',file)[0]))
+            df_dict['timepoints'].append(int(re.findall(r'(?<=timepoints_)\d+',file)[0]))
             df = s.to_pandas_dataframe()
             df['energy'] = abs(round(df['energy'],10))
 
@@ -189,7 +195,8 @@ def get_dwave_success_rates(system: int,topology="6.4")->pd.DataFrame:
             dfs.append(pd.DataFrame(df_dict))
 
     dfs_all = pd.concat(dfs)
-    dfs_all = dfs_all.groupby(['precision','timepoints','topology']).mean().reset_index()
+    if grouped:
+        dfs_all = dfs_all.groupby(['precision','timepoints','topology']).mean().reset_index()
 
     return dfs_all
 
