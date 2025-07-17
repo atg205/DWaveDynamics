@@ -24,8 +24,8 @@ def save_instance(PSI0, H, description, id, overwrite=False):
 
 def main():
     number_time_points = [i for i in range(2,5)]
-    number_time_points = [2]
-    solver_id = "6.4"
+    number_time_points = [2,3,4,5]
+    solver_id = "1.4"
     precision =2
 
 
@@ -36,8 +36,8 @@ def main():
 
 
 
-    for system in tqdm([9]):
-        for ta in tqdm([200],leave=False):
+    for system in tqdm([2,9]):
+        for ta in tqdm([10,100,500],leave=False):
             inst = instance.Instance(system)
             for tp in tqdm(number_time_points):
                 inst.create_instance(precision=precision, number_time_points=tp,save=False)
