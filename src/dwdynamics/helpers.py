@@ -12,6 +12,9 @@ from collections import defaultdict
 import json
 import dimod
 from dwdynamics import instance
+from dwave.system import DWaveSampler
+import dwave_networkx as dnx
+
 
 def random_matrix(dims, hermitian=True):
     A = np.random.uniform(-1, 1, dims) + 1.j * np.random.uniform(-1, 1, dims)
@@ -215,11 +218,37 @@ def get_velox_success_rates(system:int)->pd.DataFrame:
                                                                 'success_prob':'sum'}).reset_index()
     df['success_prob'] /= df['num_rep']
     df['runtime'] /= df['num_rep']
-    df['success_prob'] /= 100
+    #df['success_prob'] /= 100
 
     return df
 
 def return_tts(p_success: float,t:float, p_target=0.99)->float:
     if p_success == 0:
         return math.inf
+    
+    if p_success == 1:
+        return t
     return (math.log(1-p_target) / math.log(1-p_success))*t
+
+
+def get_real_graph(ver='6.4'):
+    fp = os.path.join('../', f'qpu_graph_{ver}.txt')
+    try:
+        with open(fp, 'rb') as file:
+            real_graph = pickle.load(file)
+    except FileNotFoundError:
+        #qpu = DWaveSampler(region="eu-central-1")
+        if ver=='1.4':
+            qpu = DWaveSampler(Solver=f'chip_id: Advantage2_system{ver}')
+        else:
+            qpu = DWaveSampler(Solver=f'chip_id: Advantage_system{ver}')
+
+
+        real_graph = {
+            'edges': qpu.edgelist,
+            'nodes': qpu.nodelist
+        }
+        with open(fp, 'wb') as file:
+            pickle.dump(real_graph, file)
+    return real_graph    
+

@@ -1,4 +1,4 @@
-from dwdynamics import ComplexDynamicsProblem, Objective, helpers 
+from dwdynamics import ComplexDynamicsProblem, Objective, helpers,draw_utils
 import json
 import os
 from dwave.system import DWaveSampler, EmbeddingComposite
@@ -56,7 +56,7 @@ class Instance:
                 json.dump(self.qubo.to_serializable(),f)
 
 
-    def generate_and_save_sampleset(self,solver_id="5.4", ta=200):
+    def generate_and_save_sampleset(self,solver_id="6.4", ta=200):
         """
             Runs 1000 samples on the indicated D-Wave machine
         """
@@ -69,7 +69,7 @@ class Instance:
         else:
             raise ValueError("Invalid solver id")
 
-        self.dw_result = dw_sampler.sample(self.qubo, num_reads=1000, annealing_time=ta)
+        self.dw_result = dw_sampler.sample(self.qubo, num_reads=1000, annealing_time=ta, return_embedding=True)
         self.save_access_time(int(self.dw_result.info['timing']['qpu_access_time']))
 
         path = f"data/results/{self.objective_path}/{self._id}/{solver_id}"
@@ -81,7 +81,8 @@ class Instance:
 
         with open(file_name,'w') as f:
             json.dump(self.dw_result.to_serializable(),f)
-    
+        return self.dw_result
+
     def to_xubo(self):
         """
             Convert a BQM to a xubo readable file
@@ -140,7 +141,7 @@ class Instance:
         with open(os.path.join(self.basepath, 'data','time.json'), 'r') as f:
             at_dict = json.load(f)
         at_dict['time_us'] += at
-        with open(os.path.join(os.getcwd(), 'data', 'time.json'), 'r+') as f:
+        with open(os.path.join(self.basepath, 'data', 'time.json'), 'r+') as f:
             json.dump(at_dict, f)
 
     def verify_sample(self, sample: str)->bool:
@@ -159,6 +160,18 @@ class Instance:
         self.problem.interpret_sample()
     def get_qubo(self) -> BQM:
         return self.qubo
+    
+
+    def draw(self, graph, bqm={}, qbt_values={}, solver='6.4'):
+           
+        flag = True if bqm else False
+        dot_file, svg_file = [os.path.join(self.basepath,'plots', f'{self.H}_{self.number_time_points}_bqm{flag}{tp}') for tp in ['.dot', '.svg']]
+
+        real_graph = helpers.get_real_graph(solver)
+        with open(dot_file, "w") as file:
+            draw_utils.graph_2_dot(file, graph, real_graph, bqm, qbt_values)
+        os.system("neato -Tsvg {} -o {}".format(dot_file, svg_file))
+        os.system("rm {}".format(dot_file))
 
 
 

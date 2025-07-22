@@ -24,9 +24,9 @@ def save_instance(PSI0, H, description, id, overwrite=False):
 
 def main():
     number_time_points = [i for i in range(2,5)]
-    number_time_points = [2,3,4,5]
-    solver_id = "1.4"
-    precision =2
+    number_time_points = [2]
+    solver_ids =["1.4","6.4"]
+    precision =3    
 
 
     sigma_x = np.array([[0,1],[1,0]])
@@ -36,13 +36,14 @@ def main():
 
 
 
-    for system in tqdm([2,9]):
-        for ta in tqdm([10,100,500],leave=False):
-            inst = instance.Instance(system)
-            for tp in tqdm(number_time_points):
-                inst.create_instance(precision=precision, number_time_points=tp,save=False)
-                for _ in tqdm(range(5),leave=False):
-                    inst.generate_and_save_sampleset(solver_id=solver_id,ta=ta)
+    for solver_id in tqdm(solver_ids):
+        for system in tqdm([8],leave=False):
+            for ta in tqdm([10,100,500],leave=False):
+                inst = instance.Instance(system)
+                for tp in tqdm(number_time_points):
+                    inst.create_instance(precision=precision, number_time_points=tp,save=False)
+                    for _ in tqdm(range(5),leave=False):
+                        inst.generate_and_save_sampleset(solver_id=solver_id,ta=ta)
 
 
 
