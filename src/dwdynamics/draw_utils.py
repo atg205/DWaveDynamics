@@ -2,7 +2,6 @@ import math
 
 import dwave_networkx as dnx
 
-edg_colormap = {'carry': 'blue', 'A': 'red', 'B': 'green', 'cfa': 'magenta', 'out': 'magenta'}
 def which_edge(edg, edges):
 
     for v, eL in edges.items():
@@ -51,9 +50,8 @@ def graph_2_dot(file, graph, real_graph, model={}, qbt_values={}, m=16, label=''
             if a_new<b_new: 
                 edge = tuple([a_new,b_new])
                 
-                v = which_edge(edge, graph['edges']) if graph else None
-                color = edg_colormap[v] if v else 'red' if edge not in real_graph['edges'] and edge[::-1] not in real_graph['edges'] else 'lightgrey'
-
+                #v = which_edge(edge, graph['edges']) if graph else None
+                color = 'blue'
                 if model and v:
                     print(warcTdot(a_new, b_new, color, model['couplings'][edge]), file=file)
                 else:

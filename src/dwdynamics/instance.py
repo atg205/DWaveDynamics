@@ -2,7 +2,7 @@ from dwdynamics import ComplexDynamicsProblem, Objective, helpers,draw_utils
 import json
 import os
 from dwave.system import DWaveSampler, EmbeddingComposite
-from dimod import BQM, BINARY
+from dimod import BQM
 import pandas as pd
 from io import StringIO
 import numpy as np
@@ -24,7 +24,15 @@ class Instance:
     
     def create_instance(self, precision: int, number_time_points:int, save = False):
         """
-            Creates an instance based on the provided parameters and saves the qubo to /data/instances
+        Creates an instance based on the provided parameters and saves the QUBO to /data/instances.
+
+        Args:
+            precision (int): Number of bits per variable.
+            number_time_points (int): Number of time points.
+            save (bool): If True, saves the QUBO to file.
+
+        Returns:
+            None
         """
         self.precision = precision
         self.number_time_points = number_time_points
@@ -58,7 +66,14 @@ class Instance:
 
     def generate_and_save_sampleset(self,solver_id="6.4", ta=200):
         """
-            Runs 1000 samples on the indicated D-Wave machine
+        Runs 1000 samples on the indicated D-Wave machine and saves the result.
+
+        Args:
+            solver_id (str): D-Wave solver identifier.
+            ta (int): Annealing time.
+
+        Returns:
+            dimod.SampleSet: Resulting sample set from the D-Wave run.
         """
         if solver_id == "5.4":
             dw_sampler = EmbeddingComposite(DWaveSampler( solver="Advantage_system5.4", region="eu-central-1", ))
@@ -85,7 +100,10 @@ class Instance:
 
     def to_xubo(self):
         """
-            Convert a BQM to a xubo readable file
+        Convert a BQM to a xubo readable file and run the xubo script.
+
+        Returns:
+            None
         """
         bqm = self.qubo.spin
         # map linear terms
@@ -115,12 +133,17 @@ class Instance:
         
 
     def get_xubo_df(self)->pd.DataFrame:
+        """
+        Load and parse the xubo output file for the current instance.
+
+        Returns:
+            pd.DataFrame: DataFrame containing energy and state information.
+        """
         filename = f'precision_{self.precision}_timepoints_{self.number_time_points}.xubo'
         path = os.path.join(self.basepath, f'data/xubo/output/{self._id}', filename)
         if not os.path.exists(path):
             print("running xubo")
             self.to_xubo()
-
         content = ""
         i = 1
         with open(path, 'r') as f:
@@ -130,13 +153,18 @@ class Instance:
                 if i >= 17:
                     content += line
                 i+=1
-
         assert content[0:6] == 'Energy', 'File does not have correct structure'
         return pd.read_csv(StringIO(content),sep=r'\s+',dtype={'Energy':np.float64,'State':'str'})
 
     def save_access_time(self, at: int):
         """
-            Saves access time to file /data/time.json
+        Saves access time to file /data/time.json.
+
+        Args:
+            at (int): Access time in microseconds.
+
+        Returns:
+            None
         """
         with open(os.path.join(self.basepath, 'data','time.json'), 'r') as f:
             at_dict = json.load(f)
@@ -145,34 +173,28 @@ class Instance:
             json.dump(at_dict, f)
 
     def verify_sample(self, sample: str)->bool:
-        SZ = np.array([[1, 0], [0, -1]])
+        """
+        Verify a sample against the baseline quantum expectation values.
 
+        Args:
+            sample (str): Sample string.
+
+        Returns:
+            bool: True if sample matches baseline, False otherwise.
+        """
+        SZ = np.array([[1, 0], [0, -1]])
         exact_vec = self.problem.interpret_sample(sample)
         exact_expect = [(state.conj() @ SZ @ state).real for state in exact_vec]
         times = [i for i in range(self.number_time_points)]
-
         baseline = qp.mesolve(qp.Qobj(self.H), qp.basis(2, 0),times, e_ops=[qp.sigmaz()]).expect[0]
-        assert(np.allclose(baseline, exact_expect))
+        return np.allclose(baseline, exact_expect)
 
-
-    def interpret_velox_result(self, velox_result: str):
-        velox_result_dict = helpers.result_string_to_dict(velox_result)
-        self.problem.interpret_sample()
     def get_qubo(self) -> BQM:
+        """
+        Get the QUBO for the current instance.
+
+        Returns:
+            BQM: Binary Quadratic Model (QUBO).
+        """
         return self.qubo
     
-
-    def draw(self, graph, bqm={}, qbt_values={}, solver='6.4'):
-           
-        flag = True if bqm else False
-        dot_file, svg_file = [os.path.join(self.basepath,'plots', f'{self.H}_{self.number_time_points}_bqm{flag}{tp}') for tp in ['.dot', '.svg']]
-
-        real_graph = helpers.get_real_graph(solver)
-        with open(dot_file, "w") as file:
-            draw_utils.graph_2_dot(file, graph, real_graph, bqm, qbt_values)
-        os.system("neato -Tsvg {} -o {}".format(dot_file, svg_file))
-        os.system("rm {}".format(dot_file))
-
-
-
-
