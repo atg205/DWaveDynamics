@@ -8,6 +8,7 @@ import re
 import pandas as pd
 from collections import defaultdict
 import json
+import dimod
 
 
 def random_matrix(dims, hermitian=True):
@@ -257,25 +258,6 @@ def get_precision_timepoints_pairs(dfs):
     dfs = dfs.groupby(['precision','timepoints'])['num_occurrences'].count()
     return list(set(dfs.index))
 
-def get_velox_success_rates(system:int)->pd.DataFrame:
-    """
-    Compute Velox success rates for a given system.
-
-    Args:
-        system (int): System identifier.
-
-    Returns:
-        pd.DataFrame: DataFrame containing aggregated success rates and runtimes.
-    """
-    df = get_velox_results(system=system)
-    df = df[df.num_steps == 1000]
-    df['success_prob'] = (df['success_prob'] * df['num_rep']) 
-    df = df.groupby(['precision','timepoints','num_steps','num_var']).agg({'runtime': 'sum',
-                                                                'num_rep' : 'sum',
-                                                                'success_prob':'sum'}).reset_index()
-    df['success_prob'] /= df['num_rep']
-    df['runtime'] /= df['num_rep']
-    return df
 
 def return_tts(p_success: float,t:float, p_target=0.99)->float:
     """
@@ -296,5 +278,18 @@ def return_tts(p_success: float,t:float, p_target=0.99)->float:
     return (math.log(1-p_target) / math.log(1-p_success))*t
 
 
+def get_velox_tts(system:int)->pd.DataFrame:
+    """
+    Compute Velox success rates for a given system.
+
+    Args:
+        system (int): System identifier.
+
+    Returns:
+        pd.DataFrame: DataFrame containing aggregated success rates and runtimes.
+    """
+    df = get_velox_results(system=system)
+    
+    return df
 
 
