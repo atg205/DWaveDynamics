@@ -9,7 +9,46 @@ import pandas as pd
 from collections import defaultdict
 import json
 import dimod
+import matplotlib as mpl
 
+
+# Publication-quality (TikZ-like) matplotlib style setup
+def set_pub_style(scale=1.0, fontsize=10, grid = True):
+    fig_width_pt = 246.0  # width in pt (e.g., for single-column in a paper)
+    inches_per_pt = 1.0 / 72.27
+    golden_mean = (np.sqrt(5.0) - 1.0) / 2.0  # aesthetic ratio
+    fig_width = fig_width_pt * inches_per_pt * scale
+    fig_height = fig_width * golden_mean
+    fig_size = [fig_width, fig_height]
+    eps_with_latex = {
+        "pgf.texsystem": "pdflatex",
+        "text.usetex": True,
+        "font.family": "serif",
+        "font.serif": [],
+        "font.sans-serif": [],
+        "font.monospace": [],
+        "axes.labelsize": fontsize,
+        "font.size": fontsize,
+        "legend.fontsize": fontsize,
+        "xtick.labelsize": fontsize,
+        "ytick.labelsize": fontsize,
+        "figure.figsize": fig_size,
+        "axes.titlesize": fontsize,
+        "axes.linewidth": 0.8,
+        "lines.linewidth": 1.2,
+        "grid.linewidth": 0.5,
+        "xtick.direction": 'in',
+        "ytick.direction": 'in',
+        "xtick.top": True,
+        "ytick.right": True,
+        "axes.grid": grid,
+        "grid.alpha": 0.3,
+        "legend.frameon": True,
+        "legend.framealpha": 1.0,
+        "legend.fancybox": False,
+        "legend.edgecolor": 'black',
+    }
+    mpl.rcParams.update(eps_with_latex)
 
 def random_matrix(dims, hermitian=True):
     """
@@ -193,6 +232,24 @@ def get_velox_results(system: int)->pd.DataFrame:
         df_dict['num_var'].append(int(row.num_var))
     return pd.DataFrame(df_dict)
 
+def get_dwave_sample_set(system: int, timepoints: int, topology="1.4") -> pd.DataFrame:
+    path = f'../data/results/hessian/{system}/{topology}'
+    for file in os.listdir(path):
+        file_tp = int(re.findall(r'(?<=timepoints_)\d+',file)[0])
+        if not file_tp == timepoints:
+            continue
+
+        with open(os.path.join(path,file),'r') as f:
+            s = dimod.SampleSet.from_serializable(json.load(f))
+        
+        if np.round(s.first.energy,12) == 0:
+            return s
+        print(s.first.energy)
+    raise ValueError('No ground state for given system tp pair found')
+
+
+
+
 def get_dwave_success_rates(system: int,topology="6.4",ta=200,grouped=True,file_limit=np.inf)->pd.DataFrame:
     """
     Load D-Wave success rates for a given system and topology.
@@ -218,12 +275,18 @@ def get_dwave_success_rates(system: int,topology="6.4",ta=200,grouped=True,file_
                 break
             with open(os.path.join(path,file),'r') as f:
                 s = dimod.SampleSet.from_serializable(json.load(f))
-            qpu_access_time = s.info['timing']['qpu_access_time']
-            annealing_time = s.info['timing']['qpu_anneal_time_per_sample']
-            if not ta == annealing_time:
-                continue
+            
+            if topology=='neal':
+                qpu_access_time = s.info['timing']['sampling_ns']
+                annealing_time = 0
             else:
-                file_counter+=1
+                qpu_access_time = s.info['timing']['qpu_access_time']
+                annealing_time = s.info['timing']['qpu_anneal_time_per_sample']
+                if not ta == annealing_time:
+                    continue
+            
+            file_counter+=1
+            
             df_dict['precision'].append(int(re.findall(r'(?<=precision_)\d+',file)[0]))
             df_dict['timepoints'].append(int(re.findall(r'(?<=timepoints_)\d+',file)[0]))
             df = s.to_pandas_dataframe()
@@ -272,7 +335,7 @@ def return_tts(p_success: float,t:float, p_target=0.99)->float:
         float: Estimated time to reach target success probability.
     """
     if p_success == 0:
-        return math.inf
+        return np.inf
     if p_success == 1:
         return t
     return (math.log(1-p_target) / math.log(1-p_success))*t
@@ -289,7 +352,53 @@ def get_velox_tts(system:int)->pd.DataFrame:
         pd.DataFrame: DataFrame containing aggregated success rates and runtimes.
     """
     df = get_velox_results(system=system)
-    
+    df['tts99'] = df.apply(lambda row: return_tts(row['success_prob'],row.runtime),axis=1)
+    df = df[['precision','timepoints','num_var','tts99']].groupby(['precision','timepoints','num_var']).min().reset_index()
+    df['system'] = system
+    df['source'] = 'VELOX'
     return df
 
 
+def get_dwave_tts(system: int,topology="6.4",file_limit=np.inf)->pd.DataFrame:
+
+    path = f'../data/results/hessian/{system}/'
+    df_dict = defaultdict(list)
+    path += topology
+    file_counter = 0
+    for file in os.listdir(path):
+        #if file_counter >= file_limit:
+         #   break
+        with open(os.path.join(path,file),'r') as f:
+            s = dimod.SampleSet.from_serializable(json.load(f))
+        
+        # Append Metadata
+        qpu_access_time = s.info['timing']['qpu_access_time'] * 1e-3
+        annealing_time = s.info['timing']['qpu_anneal_time_per_sample']
+        precision = int(re.findall(r'(?<=precision_)\d+',file)[0])
+        timepoints = int(re.findall(r'(?<=timepoints_)\d+',file)[0])
+        
+        df_dict['runtime'].append(qpu_access_time)
+        df_dict['ta'].append(annealing_time)
+        df_dict['precision'].append(precision)
+        df_dict['timepoints'].append(timepoints)
+        df_dict['num_var'].append(len(s.variables))
+
+        sampleset = s.to_pandas_dataframe()
+        sampleset['energy'] = abs(round(sampleset['energy'],10))
+        success = len(sampleset[sampleset.energy== 0]) > 0
+        
+        df_dict['success'].append(success)
+    
+    df = pd.DataFrame.from_dict(df_dict)
+    #return df
+    df =df.groupby(['ta','precision','timepoints','num_var']).agg(
+        success_sum=('success','sum'),
+        runtime=('runtime','mean'),
+        shots=('success','count')
+    ).reset_index()
+    df['success_prob'] = df['success_sum'] / df['shots']
+    df['tts99'] = df.apply(lambda row: return_tts(row['success_prob'],row.runtime),axis=1)
+    df = df[['precision','timepoints','num_var','tts99']].groupby(['precision','timepoints','num_var']).min().reset_index()
+    df['source'] = topology
+    df['system'] = system
+    return df

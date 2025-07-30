@@ -9,6 +9,7 @@ import numpy as np
 import subprocess
 import pickle
 import qutip as qp
+import neal
 
 class Instance:
     def __init__(
@@ -64,7 +65,7 @@ class Instance:
                 json.dump(self.qubo.to_serializable(),f)
 
 
-    def generate_and_save_sampleset(self,solver_id="6.4", ta=200):
+    def generate_and_save_sampleset(self,solver_id="6.4", ta=200,num_samples=1000):
         """
         Runs 1000 samples on the indicated D-Wave machine and saves the result.
 
@@ -81,11 +82,17 @@ class Instance:
             dw_sampler = EmbeddingComposite(DWaveSampler( solver="Advantage2_system1.4"))
         elif solver_id == "6.4": 
             dw_sampler = EmbeddingComposite(DWaveSampler(solver="Advantage_system6.4"))
+        elif solver_id == "neal":
+            dw_sampler = neal.SimulatedAnnealingSampler()
         else:
             raise ValueError("Invalid solver id")
 
-        self.dw_result = dw_sampler.sample(self.qubo, num_reads=1000, annealing_time=ta, return_embedding=True)
-        self.save_access_time(int(self.dw_result.info['timing']['qpu_access_time']))
+
+        if solver_id == 'neal':
+            self.dw_result = dw_sampler.sample(self.qubo, num_reads=num_samples, annealing_time=ta)
+        else:
+            self.dw_result = dw_sampler.sample(self.qubo, num_reads=num_samples, annealing_time=ta, return_embedding=True)
+            self.save_access_time(int(self.dw_result.info['timing']['qpu_access_time']))
 
         path = f"data/results/{self.objective_path}/{self._id}/{solver_id}"
         path = os.path.join(self.basepath, path)
