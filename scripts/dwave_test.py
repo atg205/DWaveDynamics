@@ -48,7 +48,7 @@ def main():
                 for tp in tqdm(number_time_points):
                     inst.create_instance(precision=precision, number_time_points=tp, save=False)
                     for _ in tqdm(range(5), leave=False):
-                        inst.generate_and_save_sampleset(solver_id=solver_id, ta=ta,num_samples=10)
+                        inst.generate_and_save_sampleset(solver_id=solver_id, ta=ta,num_samples=10) 
 
 
 if __name__ == "__main__":
